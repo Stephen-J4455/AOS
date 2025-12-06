@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OS Interface</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      referrerpolicy="no-referrer"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Firebase SDK -->
+    <script type="module">
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import {
+        getAuth,
+        GoogleAuthProvider,
+        signInWithPopup,
+        signOut,
+        onAuthStateChanged,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+      import {
+        getFirestore,
+        collection,
+        doc,
+        getDoc,
+        getDocs,
+        setDoc,
+        updateDoc,
+        query,
+        where,
+        orderBy,
+        limit,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyBkwhaAg-7YEBG6ObbC_dkpPEZL7e_a3G4",
+        authDomain: "aos-portfolio-f3ffd.firebaseapp.com",
+        databaseURL: "https://aos-portfolio-f3ffd-default-rtdb.firebaseio.com",
+        projectId: "aos-portfolio-f3ffd",
+        storageBucket: "aos-portfolio-f3ffd.firebasestorage.app",
+        messagingSenderId: "986753811174",
+        appId: "1:986753811174:web:296777ae427bb049ea7127",
+        measurementId: "G-54BGDY70ZL",
+      };
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // Make Firebase services available globally
+      window.firebaseAuth = auth;
+      window.firebaseDb = db;
+      window.GoogleAuthProvider = GoogleAuthProvider;
+      window.signInWithPopup = signInWithPopup;
+      window.signOut = signOut;
+      window.onAuthStateChanged = onAuthStateChanged;
+      window.collection = collection;
+      window.doc = doc;
+      window.getDoc = getDoc;
+      window.getDocs = getDocs;
+      window.setDoc = setDoc;
+      window.updateDoc = updateDoc;
+      window.query = query;
+      window.where = where;
+      window.orderBy = orderBy;
+      window.limit = limit;
+    </script>
+    <!-- Supabase SDK (for storage only) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      // Supabase configuration for storage only
+      const supabaseUrl = "https://tetgyhnqikauxjlrseiz.supabase.co";
+      const supabaseKey =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRldGd5aG5xaWthdXhqbHJzZWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5NzQzNTcsImV4cCI6MjA4MDU1MDM1N30.pXn0IBCfI9_A182qoYfN36L0g9PXuABD1wCjaOpU18M";
+      const supabaseClient = window.supabase.createClient(
+        supabaseUrl,
+        supabaseKey
+      );
+
+      // Make Supabase available globally for storage-only helpers
+      window.supabaseClient = supabaseClient;
+    </script>
+  </head>
+  <body>
+    <div class="boot-screen" id="bootScreen">
+      <div class="boot-content">
+        <img src="assets/AOS.jpg" alt="AOS Logo" class="boot-logo-img" />
+        <p class="boot-subtitle">Amuzu Operating System</p>
+        <div class="boot-progress">
+          <span class="boot-bar"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Login Overlay -->
+    <div class="login-overlay hidden" id="loginOverlay">
+      <div class="login-content">
+        <img src="assets/AOS.jpg" alt="AOS Logo" class="login-logo" />
+        <h1>Welcome to AOS</h1>
+        <p>Amuzu Operating System</p>
+        <button class="login-button" id="loginButton">
+          <i class="fab fa-google"></i>
+          Sign in with Google
+        </button>
+        <p class="login-subtitle">Please sign in to access your portfolio OS</p>
+      </div>
+    </div>
+
+    <div class="desktop wallpaper-aurora" id="desktop" style="display: none">
+      <!-- Animated background elements -->
+      <div class="bg-overlay">
+        <div class="bg-blur bg-blur-1"></div>
+        <div class="bg-blur bg-blur-2"></div>
+      </div>
+
+      <!-- Desktop icons -->
+      <div class="desktop-icons" id="desktopIcons">
+        <div
+          class="desktop-icon"
+          data-id="folder"
+          data-icon="fa-solid fa-folder-open"
+        >
+          <i class="icon fa-solid fa-folder-open"></i>
+          <span>My Files</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="documents"
+          data-icon="fa-regular fa-file-lines"
+        >
+          <i class="icon fa-regular fa-file-lines"></i>
+          <span>Documents</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="pictures"
+          data-icon="fa-regular fa-image"
+        >
+          <i class="icon fa-regular fa-image"></i>
+          <span>Pictures</span>
+        </div>
+        <div class="desktop-icon" data-id="music" data-icon="fa-solid fa-music">
+          <i class="icon fa-solid fa-music"></i>
+          <span>Music</span>
+        </div>
+        <div class="desktop-icon" data-id="videos" data-icon="fa-solid fa-film">
+          <i class="icon fa-solid fa-film"></i>
+          <span>Videos</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="settings"
+          data-icon="fa-solid fa-gear"
+        >
+          <i class="icon fa-solid fa-gear"></i>
+          <span>Settings</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="database"
+          data-icon="fa-solid fa-database"
+        >
+          <i class="icon fa-solid fa-database"></i>
+          <span>Database</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="resume"
+          data-icon="fa-solid fa-id-card"
+        >
+          <i class="icon fa-solid fa-id-card"></i>
+          <span>Resume</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="projects"
+          data-icon="fa-solid fa-diagram-project"
+        >
+          <i class="icon fa-solid fa-diagram-project"></i>
+          <span>Projects</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="testimonials"
+          data-icon="fa-solid fa-people-group"
+        >
+          <i class="icon fa-solid fa-people-group"></i>
+          <span>Testimonials</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="contact"
+          data-icon="fa-solid fa-paper-plane"
+        >
+          <i class="icon fa-solid fa-paper-plane"></i>
+          <span>Contact</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="github"
+          data-icon="fa-brands fa-github"
+        >
+          <i class="icon fa-brands fa-github"></i>
+          <span>GitHub</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="browser"
+          data-icon="fa-solid fa-globe"
+        >
+          <i class="icon fa-solid fa-globe"></i>
+          <span>Browser</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="terminal"
+          data-icon="fa-solid fa-terminal"
+        >
+          <i class="icon fa-solid fa-terminal"></i>
+          <span>Terminal</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="calculator"
+          data-icon="fa-solid fa-calculator"
+        >
+          <i class="icon fa-solid fa-calculator"></i>
+          <span>Calculator</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="calendar"
+          data-icon="fa-regular fa-calendar"
+        >
+          <i class="icon fa-regular fa-calendar"></i>
+          <span>Calendar</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="mail"
+          data-icon="fa-regular fa-envelope"
+        >
+          <i class="icon fa-regular fa-envelope"></i>
+          <span>Mail</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="messages"
+          data-icon="fa-regular fa-comments"
+        >
+          <i class="icon fa-regular fa-comments"></i>
+          <span>Messages</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="about"
+          data-icon="fa-solid fa-user-astronaut"
+        >
+          <i class="icon fa-solid fa-user-astronaut"></i>
+          <span>About AOS</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="ai-assistant"
+          data-icon="fa-solid fa-robot"
+        >
+          <i class="icon fa-solid fa-robot"></i>
+          <span>AOS AI</span>
+        </div>
+        <div
+          class="desktop-icon"
+          data-id="gift-creator"
+          data-icon="fa-solid fa-gift"
+        >
+          <i class="icon fa-solid fa-gift"></i>
+          <span>Gift Creator</span>
+        </div>
+      </div>
+
+      <!-- Floating AI Assistant Button -->
+      <button
+        class="floating-ai-button"
+        id="floatingAIButton"
+        title="Open AOS AI Assistant"
+      >
+        <img src="assets/AOS.jpg" alt="AOS AI" class="floating-ai-img" />
+        <div class="floating-ai-pulse"></div>
+      </button>
+
+      <!-- Profile Widget -->
+      <div class="profile-widget" id="profileWidget">
+        <div class="profile-header">
+          <div class="profile-avatar">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div class="profile-info">
+            <h4>Stephen J. Amuzu</h4>
+            <p>Full Stack Developer</p>
+          </div>
+          <button class="profile-close-btn" onclick="closeProfileWidget()">
+            <i class="fa-solid fa-times"></i>
+          </button>
+        </div>
+        <div class="profile-details">
+          <div class="profile-item">
+            <i class="fa-solid fa-envelope"></i>
+            <span>stevejupiter4@gmail.com</span>
+          </div>
+          <div class="profile-item">
+            <i class="fa-solid fa-phone"></i>
+            <span>+233532973455</span>
+          </div>
+          <div class="profile-item">
+            <i class="fa-solid fa-map-marker-alt"></i>
+            <span>Accra, Ghana</span>
+          </div>
+          <div class="profile-item">
+            <i class="fa-solid fa-briefcase"></i>
+            <span>5+ Years Experience</span>
+          </div>
+        </div>
+        <div class="profile-skills">
+          <div class="skill-tag">HTML</div>
+          <div class="skill-tag">CSS</div>
+          <div class="skill-tag">JavaScript</div>
+          <div class="skill-tag">React</div>
+          <div class="skill-tag">Python</div>
+          <div class="skill-tag">C++</div>
+          <div class="skill-tag">Node</div>
+          <div class="skill-tag">Express</div>
+          <div class="skill-tag">Supabase</div>
+          <div class="skill-tag">Firebase</div>
+          <div class="skill-tag">Machine Learning</div>
+          <div class="skill-tag">Prompt Engineering</div>
+        </div>
+      </div>
+
+      <!-- Windows container -->
+      <div id="windowsContainer"></div>
+
+      <!-- Wallpaper Picker Modal -->
+      <div class="wallpaper-modal hidden" id="wallpaperModal">
+        <div class="wallpaper-modal-content">
+          <div class="modal-header">
+            <h3><i class="fa-regular fa-image"></i> Choose Wallpaper</h3>
+            <button class="modal-close" id="closeWallpaperModal">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <div class="wallpaper-grid">
+            <button class="wallpaper-option active" data-wallpaper="aurora">
+              <span class="wallpaper-swatch swatch-aurora"></span>
+              <span>Aurora</span>
+            </button>
+            <button class="wallpaper-option" data-wallpaper="nebula">
+              <span class="wallpaper-swatch swatch-nebula"></span>
+              <span>Nebula</span>
+            </button>
+            <button class="wallpaper-option" data-wallpaper="sunset">
+              <span class="wallpaper-swatch swatch-sunset"></span>
+              <span>Sunset</span>
+            </button>
+            <button class="wallpaper-option" data-wallpaper="mono">
+              <span class="wallpaper-swatch swatch-mono"></span>
+              <span>Monochrome</span>
+            </button>
+            <button class="wallpaper-option" data-wallpaper="aos-image">
+              <span class="wallpaper-swatch swatch-aos-image"></span>
+              <span>AOS</span>
+            </button>
+            <button
+              class="wallpaper-option"
+              data-wallpaper="pexels-bri-schneiter-28802-346529"
+            >
+              <span class="wallpaper-swatch swatch-mountain"></span>
+              <span>Mountain</span>
+            </button>
+            <button
+              class="wallpaper-option"
+              data-wallpaper="pexels-cottonbro-9695151"
+            >
+              <span class="wallpaper-swatch swatch-forest"></span>
+              <span>SmokeBall</span>
+            </button>
+            <button
+              class="wallpaper-option"
+              data-wallpaper="pexels-haugenzhays-1798631"
+            >
+              <span class="wallpaper-swatch swatch-city"></span>
+              <span>Tokyo</span>
+            </button>
+            <button
+              class="wallpaper-option"
+              data-wallpaper="pexels-maxfrancis-2246476"
+            >
+              <span class="wallpaper-swatch swatch-ocean"></span>
+              <span>City</span>
+            </button>
+            <button
+              class="wallpaper-option"
+              data-wallpaper="pexels-pedro-figueras-202443-681467"
+            >
+              <span class="wallpaper-swatch swatch-desert"></span>
+              <span>Sunset</span>
+            </button>
+            <button
+              class="wallpaper-option"
+              data-wallpaper="pexels-quang-nguyen-vinh-222549-2166711"
+            >
+              <span class="wallpaper-swatch swatch-space"></span>
+              <span>River</span>
+            </button>
+            <button
+              class="wallpaper-option"
+              data-wallpaper="pexels-therato-1933320"
+            >
+              <span class="wallpaper-swatch swatch-abstract"></span>
+              <span>Abstract</span>
+            </button>
+            <button class="wallpaper-option" data-wallpaper="white">
+              <span class="wallpaper-swatch swatch-white"></span>
+              <span>Plain White</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Start Menu -->
+      <div class="start-menu hidden" id="startMenu">
+        <div class="start-menu-header">
+          <div class="user-chip">
+            <div class="user-avatar">EA</div>
+            <div>
+              <p class="user-greeting">Welcome back</p>
+              <p class="user-name">Emma Amuzu</p>
+            </div>
+          </div>
+          <label class="start-search" for="startSearch">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input
+              type="search"
+              id="startSearch"
+              placeholder="Search apps, files, inspiration..."
+              autocomplete="off"
+            />
+          </label>
+        </div>
+        <div class="start-menu-body">
+          <section class="start-section pinned">
+            <div class="section-header">
+              <h4>Pinned</h4>
+              <span>Double click to open</span>
+            </div>
+            <div class="start-menu-apps" id="startMenuApps">
+              <!-- Apps added by JavaScript -->
+            </div>
+          </section>
+          <section class="start-section featured">
+            <div class="section-header">
+              <h4>Spotlight</h4>
+              <span>Hand-picked experiences</span>
+            </div>
+            <div class="featured-cards">
+              <article class="featured-card" data-feature="about">
+                <i class="fa-solid fa-user-astronaut"></i>
+                <div>
+                  <h5>About AOS</h5>
+                  <p>Discover the story behind Amuzu Operating System.</p>
+                </div>
+              </article>
+              <article class="featured-card" data-feature="case-studies">
+                <i class="fa-solid fa-layer-group"></i>
+                <div>
+                  <h5>Case Studies</h5>
+                  <p>Launch immersive project walkthroughs.</p>
+                </div>
+              </article>
+              <article class="featured-card" data-feature="availability">
+                <i class="fa-regular fa-calendar-check"></i>
+                <div>
+                  <h5>Availability</h5>
+                  <p>See current freelance bandwidth.</p>
+                </div>
+              </article>
+            </div>
+          </section>
+          <section class="start-section quick-actions">
+            <div class="section-header">
+              <h4>Quick actions</h4>
+              <span>Shortcuts for your workflow</span>
+            </div>
+            <div class="quick-action-buttons">
+              <button data-action="open-resume">
+                <i class="fa-solid fa-id-badge"></i>
+                Resume
+              </button>
+              <button data-action="open-contact">
+                <i class="fa-solid fa-comments"></i>
+                Contact
+              </button>
+              <button data-action="open-github">
+                <i class="fa-brands fa-github"></i>
+                GitHub
+              </button>
+              <button data-action="open-labs">
+                <i class="fa-solid fa-flask"></i>
+                Labs
+              </button>
+            </div>
+          </section>
+        </div>
+        <div class="start-menu-footer">
+          <button class="btn-profile" id="authButton">Sign In</button>
+          <div class="footer-spacer"></div>
+          <button class="btn-settings" aria-label="Settings">
+            <i class="fa-solid fa-gear"></i>
+          </button>
+          <button class="btn-power">Power</button>
+        </div>
+      </div>
+
+      <!-- Taskbar -->
+      <div class="taskbar" style="display: none">
+        <button
+          class="start-button"
+          id="startButton"
+          aria-label="Open AOS menu"
+        >
+          <img src="assets/AOS.jpg" alt="AOS" class="start-logo-img" />
+        </button>
+
+        <div class="taskbar-divider"></div>
+
+        <div class="taskbar-windows" id="taskbarWindows"></div>
+
+        <div class="system-tray">
+          <button class="tray-icon" id="wallpaperButton" aria-label="Wallpaper">
+            <i class="fa-regular fa-image"></i>
+          </button>
+          <button class="tray-icon" aria-label="Wi-Fi">
+            <i class="fa-solid fa-wifi"></i>
+          </button>
+          <button class="tray-icon" aria-label="Volume">
+            <i class="fa-solid fa-volume-high"></i>
+          </button>
+          <button class="tray-icon" aria-label="Battery">
+            <i class="fa-solid fa-battery-three-quarters"></i>
+          </button>
+
+          <button class="tray-icon" id="profileButton" aria-label="Profile">
+            <i class="fa-solid fa-user"></i>
+          </button>
+
+          <div class="taskbar-divider"></div>
+
+          <div class="clock" id="clock">
+            <div class="clock-time">12:00 PM</div>
+            <div class="clock-date">Dec 6</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paystack -->
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+
+    <!-- Modular Scripts -->
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script src="script.js"></script>
+  </body>
+</html>
