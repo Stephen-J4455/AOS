@@ -5,10 +5,40 @@ let startMenuOpen = false;
 let currentUser = null;
 let isAdminUser = false;
 let bootComplete = false;
+let highPerformanceMode = false;
 let userPreferences = {
   wallpaper: "aurora",
   theme: "dark",
+  highPerformance: false,
 };
+
+// Performance optimization - detect low-end devices
+(function detectPerformance() {
+  const isLowEnd =
+    navigator.hardwareConcurrency <= 4 ||
+    navigator.deviceMemory <= 4 ||
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+
+  if (isLowEnd) {
+    document.body.classList.add("high-performance");
+    highPerformanceMode = true;
+    // High performance mode enabled for better smoothness
+  }
+})();
+
+// Toggle high performance mode
+function toggleHighPerformanceMode(enable) {
+  highPerformanceMode = enable;
+  if (enable) {
+    document.body.classList.add("high-performance");
+  } else {
+    document.body.classList.remove("high-performance");
+  }
+  userPreferences.highPerformance = enable;
+  saveUserPreferences();
+}
 
 if (typeof window.marked?.setOptions === "function") {
   window.marked.setOptions({
@@ -32,18 +62,18 @@ function escapeHtml(value) {
 // Firebase Auth State Observer
 function initFirebaseAuth() {
   if (window.firebaseAuth && window.onAuthStateChanged) {
-    console.log("Setting up Firebase auth listener...");
+    // Setting up Firebase auth listener...
 
     window.onAuthStateChanged(window.firebaseAuth, async (user) => {
-      console.log("Auth state changed:", user?.email);
+      // Auth state changed
       currentUser = user;
       if (user) {
-        console.log("User signed in:", user.email);
+        // User signed in
         await createOrUpdateUserProfile(user);
         loadUserPreferences();
         updateUIForUser(user);
       } else {
-        console.log("User signed out");
+        // User signed out
         updateUIForUser(null);
       }
       // Complete boot animation after auth check
@@ -104,6 +134,11 @@ function loadUserPreferences() {
       const prefs = JSON.parse(savedPrefs);
       userPreferences = { ...userPreferences, ...prefs };
       applyUserPreferences();
+
+      // Apply high performance mode if saved
+      if (prefs.highPerformance) {
+        toggleHighPerformanceMode(true);
+      }
     }
   } catch (error) {
     console.error("Error loading user preferences:", error);
@@ -928,6 +963,7 @@ function renderWindow(window) {
 
     focusWindow(window.id);
     isDragging = true;
+    div.classList.add("dragging"); // Performance optimization
     dragOffset = {
       x: e.clientX - window.position.x,
       y: e.clientY - window.position.y,
@@ -945,6 +981,9 @@ function renderWindow(window) {
   });
 
   document.addEventListener("mouseup", () => {
+    if (isDragging) {
+      div.classList.remove("dragging"); // Performance optimization
+    }
     isDragging = false;
   });
 
@@ -1053,19 +1092,32 @@ function renderTaskbar() {
   container.innerHTML = windows
     .map(
       (w) => `
-        <button class="taskbar-window ${
-          w.isMinimized ? "minimized" : "active"
-        }" data-window-id="${w.id}">
-            <i class="icon ${w.iconClass}"></i>
-            <span>${w.title}</span>
-        </button>
+        <div class="taskbar-window-container">
+          <button class="taskbar-window ${
+            w.isMinimized ? "minimized" : "active"
+          }" data-window-id="${w.id}">
+              <i class="icon ${w.iconClass}"></i>
+              <span>${w.title}</span>
+          </button>
+          <button class="taskbar-close-btn" data-window-id="${
+            w.id
+          }" title="Close window">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
     `
     )
     .join("");
 
-  // Add click handlers
+  // Add click handlers for window buttons
   container.querySelectorAll(".taskbar-window").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (e) => {
+      // Don't trigger if clicking on close button area
+      if (e.target.closest(".taskbar-close-btn")) return;
+
       const windowId = btn.dataset.windowId;
       const window = windows.find((w) => w.id === windowId);
       if (window) {
@@ -1075,6 +1127,15 @@ function renderTaskbar() {
           focusWindow(windowId);
         }
       }
+    });
+  });
+
+  // Add click handlers for close buttons
+  container.querySelectorAll(".taskbar-close-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const windowId = btn.dataset.windowId;
+      closeWindow(windowId);
     });
   });
 }
@@ -1599,14 +1660,8 @@ function getWindowContent(title, iconClass) {
     `,
     "AOS AI": `
       <div style="height: 100%; display: flex; flex-direction: column;">
-        <div style="padding: 20px 20px 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <i class="fa-solid fa-robot" style="font-size: 24px; color: #10b981;"></i>
-            <h2 style="margin: 0;">AOS AI Assistant</h2>
-          </div>
-        </div>
-        <div style="flex: 1; overflow-y: auto; padding: 16px 20px;">
-          <div id="ai-chat-container" style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="flex: 1; overflow-y: auto; padding: 16px 20px; min-height: 0; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: rgba(16, 185, 129, 0.3) transparent;">
+          <div id="ai-chat-container">
             <div class="ai-response">
               <div class="ai-response-header">
                 <i class="fa-solid fa-robot"></i>
@@ -1618,8 +1673,8 @@ function getWindowContent(title, iconClass) {
             </div>
           </div>
         </div>
-        <div style="padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1); background: rgba(15,23,42,0.8); backdrop-filter: blur(16px);">
-          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <div style="padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.1); background: rgba(15,23,42,0.8); backdrop-filter: blur(16px);">
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
             <input id="ai-input" type="text" placeholder="Ask me anything about Stephen J. Amuzu..." style="flex: 1; padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: #e2e8f0;">
             <button id="send-ai-message" style="padding: 10px 16px; border-radius: 12px; background: #10b981; border: none; color: white; cursor: pointer; font-weight: 500;">
               <i class="fa-solid fa-paper-plane"></i> Send
@@ -3578,6 +3633,7 @@ async function viewDocument(collectionName, docId) {
 
       // Create a modal or new window to show document details
       const modal = document.createElement("div");
+      modal.className = "modal-overlay";
       modal.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(0,0,0,0.8); z-index: 1000; display: flex;
@@ -3588,7 +3644,7 @@ async function viewDocument(collectionName, docId) {
         <div style="background: rgba(15,23,42,0.95); border-radius: 16px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h3 style="margin: 0; color: #38bdf8;">Document: ${docId}</h3>
-            <button onclick="this.closest('div').parentElement.remove()" style="background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 20px;">×</button>
+            <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 20px;">×</button>
           </div>
           <pre style="background: rgba(0,0,0,0.5); padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12px; color: #e2e8f0;">${jsonString}</pre>
         </div>
